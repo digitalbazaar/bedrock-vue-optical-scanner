@@ -3,6 +3,7 @@
     ref="scannerUIRef"
     :tip-text="tipText"
     :show-qr-box="showQrBox"
+    :scan-type="scanType"
     :formats="scanConfig.formats"
     :loading="loading"
     :scanning="scanning"
@@ -383,11 +384,34 @@ export default {
       let timeout;
       let scanSucceeded = false;
 
+      // Get container reference at scan time (when it's available)
+      const mrzContainer = scannerUIRef.value?.mrzContainer;
+      console.log('=== CONTAINER DEBUG ===');
+      console.log('scannerUIRef.value:', scannerUIRef.value);
+      console.log('mrzContainer element:', mrzContainer);
+      console.log('mrzContainer type:', mrzContainer?.constructor?.name);
+      console.log('========================');
+
+      // Create modified plugin options with the runtime container
+      const runtimePluginOptions = {
+        ...scannerPluginOptions,  // Copy everything
+        mrz: scannerPluginOptions.mrz ? {
+          ...scannerPluginOptions.mrz,  // Copy all mrz properties
+          scannerConfig: {
+            ...scannerPluginOptions.mrz.scannerConfig,  // Copy all scannerConfig
+            targetContainer: mrzContainer  // Override ONLY targetContainer
+          }
+        } : undefined,
+        // Explicitly preserve other plugins:
+        pdf417_enhanced: scannerPluginOptions.pdf417_enhanced
+      };
+
+
       try {
         const scanPromise =
           opticalScanner.scan(
             video.value,
-            {...scanOptions, pluginOptions: scannerPluginOptions, signal}
+            {...scanOptions, pluginOptions: runtimePluginOptions, signal}
           );
         // Only create timeout promise if timeoutMs > 0
         const promises = [scanPromise];

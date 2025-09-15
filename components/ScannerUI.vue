@@ -43,9 +43,16 @@
       </slot>
     </div>
 
-    <!-- Video Container -->
+    <!-- MRZ Container for Dynamsoft -->
     <div
-      v-show="showVideo"
+      v-show="isMrzMode"
+      ref="mrzContainer"
+      class="mrz-container full-width full-height">
+    </div>
+
+    <!-- Video Container (only for non-MRZ modes) -->
+    <div
+      v-show="showVideo && !isMrzMode"
       ref="videoContainer"
       class="video-container full-width full-height">
       <video
@@ -58,9 +65,9 @@
         style="object-fit: cover;" />
     </div>
 
-    <!-- QR Box Overlay -->
+    <!-- QR Box Overlay (only for non-MRZ modes)-->
     <div
-      v-if="showQrBox && showVideo"
+      v-if="showQrBox && showVideo && !isMrzMode"
       class="scan-overlay-container">
       <div class="qr-box-overlay">
         <div
@@ -255,6 +262,11 @@ export default {
     formats: {
       type: Array,
       default: () => ['qr_code', 'pdf417', 'pdf417_enhanced', 'mrz']
+    },
+    scanType: {
+    type: String,
+    required: true,
+    validator: value => ['mrz', 'barcode'].includes(value)
     }
   },
   emits: [
@@ -269,8 +281,11 @@ export default {
   setup(props, {emit}) {
     const fileInput = ref(null);
     const videoRef = ref(null);
+    const mrzContainer = ref(null);
     const currentCameraIndex = ref(0);
     const zoomLevel = ref(1);
+
+    const isMrzMode = computed(() => props.scanType === 'mrz');
 
     const showVideo = computed(() =>
       !props.loading && !props.cameraError
@@ -372,9 +387,11 @@ export default {
     return {
       fileInput,
       videoRef,
+      mrzContainer,
       zoomLevel,
       showVideo,
       showControls,
+      isMrzMode,
       switchToNextCamera,
       handleFileUpload,
       openFileDialog,
@@ -391,6 +408,13 @@ export default {
 .optical-scanner-container {
   background: #000;
   overflow: hidden;
+}
+
+.mrz-container {
+  position: relative;
+  background: #000;
+  /* border: 5px solid red !important; */ /* Debug border */
+  /* box-sizing: border-box; */ /* Debug border */
 }
 
 .controls-bar {
@@ -489,5 +513,19 @@ export default {
 /* Prevent pinch to zoom on mobile */
 .optical-scanner-container {
   touch-action: pan-y;
+}
+
+/* Target any remaining global Dynamsoft elements */
+:global(.mrz-scanner-scanner-view-container),
+:global(.dynamsoft-mrz-loading-screen),
+:global(.dynamsoft-mrz-loading),
+:global(.dynamsoft-mrz-loading-content),
+:global(.dynamsoft-mrz-loading-message) {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 10 !important;
 }
 </style>

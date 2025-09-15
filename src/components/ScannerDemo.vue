@@ -32,7 +32,7 @@
       <OpticalScanner
         v-if="scannerOpen"
         ref="scanner"
-        :scan-mode="first"
+        :scan-mode="'first'"
         :scan-type="scanType"
         :license-key="licenseKey"
         tip-text="Position barcode or ID inside the frame"
@@ -192,19 +192,3 @@ export default {
   }
 };
 </script>
-
-<style>
-
-/* Global styles - not scoped so they can affect Dynamsoft elements */
-.mrz-scanner-main-container,
-.mrz-scanner-scanner-view-container,
-.dynamsoft-mrz-loading-screen {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  z-index: 99999 !important;
-  background: white !important;
-}
-</style>
