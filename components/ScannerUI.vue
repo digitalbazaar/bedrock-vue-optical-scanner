@@ -42,27 +42,36 @@
           size="50px" />
       </slot>
     </div>
+    <!--
+      MRZ CONTAINER - Integration (mrz scan)
 
-    <!-- MRZ Container for Dynamsoft -->
+      For MRZ scanning, this container receives the video element created by CameraScanner.
+      Dynamsoft MRZ plugin may also inject its own UI elements into this container.
+      The container must be sized properly to accommodate both video and UI overlays.
+    -->
     <div
       v-show="isMrzMode"
       ref="mrzContainer"
       class="mrz-container full-width full-height">
+      <!-- CameraScanner will insert video element here dynamically -->
+      <!-- Dynamsoft may also inject native UI components here -->
     </div>
 
-    <!-- Video Container (only for non-MRZ modes) -->
+    <!--
+      VIDEO CONTAINER - Integration (only for non-MRZ modes)
+      
+      For barcode scanning, this container receives the video element created by CameraScanner.
+      Vue overlays (QR box, controls, etc.) are positioned on top using absolute positioning.
+      
+      IMPORTANT: Removed the static <video> element that was previously here.
+      CameraScanner now creates and provides the video element dynamically.
+    -->
     <div
       v-show="showVideo && !isMrzMode"
       ref="videoContainer"
       class="video-container full-width full-height">
-      <video
-        id="optical-scanner-video"
-        ref="videoRef"
-        autoplay
-        playsinline
-        muted
-        class="full-width full-height"
-        style="object-fit: cover;" />
+      <!-- CameraScanner will insert video element here dynamically -->
+      <!-- Previous static video element removed -->
     </div>
 
     <!-- QR Box Overlay (only for non-MRZ modes)-->
@@ -134,16 +143,18 @@
           icon="fas fa-upload"
           color="white"
           size="md"
-          class="q-mb-sm">
+          class="q-mb-sm"
+          @click="openFileDialog">
           <q-tooltip>Upload Image</q-tooltip>
-          <input
-            ref="fileInput"
-            type="file"
-            accept="image/*"
-            multiple
-            style="display: none;"
-            @change="handleFileUpload">
         </q-btn>
+        <!-- Hidden file input for upload functionality -->
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/*"
+          multiple
+          style="display: none;"
+          @change="handleFileUpload">
       </div>
 
       <!-- Zoom Slider -->
@@ -175,37 +186,6 @@
             class="q-mt-xs" />
         </div>
       </div>
-
-      <!-- Add this debug info right above the Start/Stop Controls -->
-    <!--
-      <div
-        class="absolute-top q-pa-sm text-white text-caption"
-        style="background: rgba(0,0,0,0.5);">
-        DEBUG: cameraOn={{cameraOn}}, loading={{loading}}, scanning={{scanning}}
-      </div>
-    -->
-      <!-- FIXME: DID NOT WORKED AS EXPECTED
-        Start/Stop Controls (always visible on top of video) -->
-    <!--
-      <div class="absolute-bottom q-pa-md row justify-center controls-bar">
-        <q-btn
-          v-if="!cameraOn"
-          unelevated
-          color="green"
-          icon="fas fa-play"
-          label="Start Scan"
-          class="q-mx-sm"
-          @click="handleStartScan" />
-        <q-btn
-          v-else
-          unelevated
-          color="red"
-          icon="fas fa-stop"
-          label="Stop Scan"
-          class="q-mx-sm"
-          @click="handleStopScan" />
-      </div>
-    -->
     </div>
   </div>
 </template>
@@ -279,12 +259,16 @@ export default {
     'stop-scan'
   ],
   setup(props, {emit}) {
+    // --- Refs for DOM Elements ---
     const fileInput = ref(null);
-    const videoRef = ref(null);
-    const mrzContainer = ref(null);
+    const mrzContainer = ref(null); // Container for MRZ video + Dynamsoft UI
+    const videoContainer = ref(null); // Container for barcode video + overlays
+
+    // --- Component State ---
     const currentCameraIndex = ref(0);
     const zoomLevel = ref(1);
 
+    // --- Computed Properties ---
     const isMrzMode = computed(() => props.scanType === 'mrz');
 
     const showVideo = computed(() =>
@@ -297,14 +281,14 @@ export default {
 
     const overlayClasses = computed(() => {
 
-      // safety check
+      // safety check - ensure formats array exists
       if(!props.formats || !Array.isArray(props.formats)) {
         return 'scan-overlay--qr'; // default fallback
       }
 
       const hasQR = props.formats.includes('qr_code');
       const hasPDF417 = props.formats.includes('pdf417') ||
-      props.formats.includes('pdf417_enhanced');
+        props.formats.includes('pdf417_enhanced');
       const hasMRZ = props.formats.includes('mrz');
 
       if(props.formats.length === 1) {
@@ -325,7 +309,7 @@ export default {
 
     const overlayText = computed(() => {
 
-      // safety check
+      // safety check - ensure formats array exists
       if(!props.formats || !Array.isArray(props.formats)) {
         return 'Hold QR code here'; // default fallback
       }
@@ -349,6 +333,7 @@ export default {
       return 'Hold document here';
     });
 
+    // --- Camera Control Methods ---
     function switchToNextCamera() {
       if(props.cameraList.length <= 1) {
         return;
@@ -361,6 +346,12 @@ export default {
       emit('update-camera', nextCamera.deviceId);
     }
 
+    // --- File Upload Methods ---
+
+    /**
+    * Handle file selection from input element.
+    * Converts FileList to Array and emits to parent component.
+    */
     function handleFileUpload(event) {
       const files = Array.from(event.target.files);
       if(files.length > 0) {
@@ -370,33 +361,56 @@ export default {
       event.target.value = '';
     }
 
+    /**
+    * Programmatically trigger file input dialog.
+    * Called by file upload button click.
+    */
     function openFileDialog() {
       fileInput.value?.click();
     }
 
+    // --- Scan Control Methods ---
+
+    /**
+    * Handle start scan button click (if enabled in template).
+    * Currently commented out/removed in template but kept for future use.
+    */
     function handleStartScan() {
       console.log('START SCAN button clicked in ScannerUI');
       emit('start-scan');
     }
 
+    /**
+    * Handle stop scan button click (if enabled in template).
+    * Currently commented out/removed in template but kept for future use.
+    */
     function handleStopScan() {
       console.log('STOP SCAN button clicked in ScannerUI');
       emit('stop-scan');
     }
 
+    // --- Return Values for Template ---
     return {
-      fileInput,
-      videoRef,
-      mrzContainer,
+      // DOM Refs
+      fileInput, // For file upload functionality
+      mrzContainer, // Container where CameraScanner inserts MRZ video
+      videoContainer, // Container where CameraScanner inserts barcode video
+      // videoRef, // No longer needed
+      
+      // State
       zoomLevel,
+
+      // Computed Properties
       showVideo,
       showControls,
       isMrzMode,
+      overlayClasses,
+      overlayText,
+
+      // Methods
       switchToNextCamera,
       handleFileUpload,
       openFileDialog,
-      overlayClasses,
-      overlayText,
       handleStartScan,
       handleStopScan
     };

@@ -1,6 +1,5 @@
 <template>
   <div>
-    <h1>Scanner Test Page</h1>
     <ScannerDemo />
   </div>
 </template>

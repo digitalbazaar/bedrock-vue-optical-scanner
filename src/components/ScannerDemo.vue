@@ -1,38 +1,28 @@
 <template>
   <div class="q-pa-md">
-    <!-- Add this scan type selection section -->
+    <h2>Optical Scanner Demo</h2>
+
+    <!-- Document Type Selection -->
     <div class="q-mb-md">
-      <div class="text-h6 q-mb-sm">
-        Select Document Type
-      </div>
       <q-option-group
         v-model="scanType"
         :options="scanTypeOptions"
-        color="primary"
-        inline />
+        color="primary" />
     </div>
-    <!-- Controls row, always visible -->
 
-    <div class="row q-gutter-sm q-mb-md">
-      <q-btn
-        label="Start Scan"
-        color="primary"
-        @click="openScanner" />
-      <q-btn
-        label="Stop Scan"
-        color="negative"
-        @click="stopScanner" />
-    </div>
+    <!-- Start Scanner Button -->
+    <q-btn
+      color="primary"
+      label="Start Scanner"
+      @click="openScanner" />
 
     <!-- Scanner Modal -->
     <q-dialog
       v-model="scannerOpen"
-      maximized
-      persistent>
+      maximized>
       <OpticalScanner
         v-if="scannerOpen"
         ref="scanner"
-        :scan-mode="'first'"
         :scan-type="scanType"
         :license-key="licenseKey"
         tip-text="Position barcode or ID inside the frame"
@@ -134,29 +124,7 @@ export default {
       scanResult.value = null;
       scanError.value = null;
       scannerOpen.value = true;
-
-      // Auto-start camera when modal opens (remove setTimeout)
-      // Remove the scanAny() call here - let it happen naturally
-
-      // Kick off scanAny after scanner is mounted
-      setTimeout(async () => {
-        console.log('setTimeout callback - scanner.value:', !!scanner.value);
-
-        if(scanner.value) {
-          try {
-            console.log('About to call scanAny');
-            // you can start camera explicitly
-            // await scanner.value.startCamera();
-            // then start scan
-            await scanner.value.scanAny();
-          } catch(err) {
-            console.log('scanAny error:', err);
-            scanError.value = err.message || 'Scan failed';
-          }
-        } else {
-          console.log('scanner.value is null/undefined');
-        }
-      }, 2000);
+      // The refactored OpticalScanner will handle its own lifecycle
     }
 
     function onResult(result) {
@@ -169,13 +137,6 @@ export default {
       scanError.value = error.message || 'Error occurred';
     }
 
-    function stopScanner() {
-      if(scanner.value) {
-        scanner.value.stopCamera();
-      }
-      // scannerOpen.value = false;
-    }
-
     return {
       scanner,
       scannerOpen,
@@ -186,8 +147,7 @@ export default {
       licenseKey,
       openScanner,
       onResult,
-      onError,
-      stopScanner
+      onError
     };
   }
 };
