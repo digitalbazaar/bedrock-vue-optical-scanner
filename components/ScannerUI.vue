@@ -1,7 +1,23 @@
 <template>
+  <!--
+    ARCHITECTURE: Separated Areas for Clean DOM Management
+    - camera-area: CameraScanner manages video/Dynamsoft UI (z-index: 1)
+    - UI states: Vue manages error/loading states (z-index: 10) 
+    - overlay-area: Vue manages scan guides & controls (z-index: 2-6)
+    This prevents DOM conflicts between Vue and CameraScanner
+  -->
   <div
     ref="scannerContainer"
     class="optical-scanner-container full-width full-height relative-position">
+    <!-- CameraScanner's Dedicated Area -->
+    <div
+      ref="cameraContainer"
+      class="camera-area full-width full-height">
+      <!-- CameraScanner will manage this area exclusively -->
+      <!-- For MRZ camera mode: Dynamsoft native UI goes here -->
+      <!-- For barcode mode: Video element goes here -->
+    </div>
+    <!-- Vue's Domain: UI States (always on top) -->
     <!-- Camera Error -->
     <div
       v-if="cameraError"
@@ -42,148 +58,122 @@
           size="50px" />
       </slot>
     </div>
-    <!--
-      MRZ CONTAINER - Integration (mrz scan)
 
-      For MRZ scanning, this container receives the video element created by CameraScanner.
-      Dynamsoft MRZ plugin may also inject its own UI elements into this container.
-      The container must be sized properly to accommodate both video and UI overlays.
-    -->
+    <!-- Vue's Domain: Overlays & Controls (only show for barcode mode, hidden for MRZ camera mode) -->
     <div
-      v-show="isMrzMode"
-      ref="mrzContainer"
-      class="mrz-container full-width full-height">
-      <!-- CameraScanner will insert video element here dynamically -->
-      <!-- Dynamsoft may also inject native UI components here -->
-    </div>
-
-    <!--
-      VIDEO CONTAINER - Integration (only for non-MRZ modes)
-      
-      For barcode scanning, this container receives the video element created by CameraScanner.
-      Vue overlays (QR box, controls, etc.) are positioned on top using absolute positioning.
-      
-      IMPORTANT: Removed the static <video> element that was previously here.
-      CameraScanner now creates and provides the video element dynamically.
-    -->
-    <div
-      v-show="showVideo && !isMrzMode"
-      ref="videoContainer"
-      class="video-container full-width full-height">
-      <!-- CameraScanner will insert video element here dynamically -->
-      <!-- Previous static video element removed -->
-    </div>
-
-    <!-- QR Box Overlay (only for non-MRZ modes)-->
-    <div
-      v-if="showQrBox && showVideo && !isMrzMode"
-      class="scan-overlay-container">
-      <div class="qr-box-overlay">
+      v-if="showOverlays"
+      class="overlay-area">
+      <div class="scan-overlay-container">
+        <!-- QR Box Overlay -->
         <div
-          :class="overlayClasses"
-          class="scan-overlay">
-          <div class="scan-instruction">
-            {{overlayText}}
+          v-if="showQrBox"
+          class="qr-box-overlay">
+          <div
+            :class="overlayClasses"
+            class="scan-overlay">
+            <div class="scan-instruction">
+              {{overlayText}}
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Tip Text -->
-      <div
-        v-if="tipText && showVideo"
-        class="absolute-bottom text-center q-pb-xl">
+        <!-- Tip Text -->
         <div
-          class="tip-text text-white q-px-md q-py-sm rounded-borders"
-          style="background: rgba(0, 0, 0, 0.6);">
-          {{tipText}}
+          v-if="tipText"
+          class="absolute-bottom text-center q-pb-xl">
+          <div
+            class="tip-text text-white q-px-md q-py-sm rounded-borders"
+            style="background: rgba(0, 0, 0, 0.6);">
+            {{tipText}}
+          </div>
         </div>
-      </div>
 
-      <!-- Close Button -->
-      <q-btn
-        v-if="!loading && !scanning"
-        flat
-        round
-        icon="fas fa-times"
-        color="white"
-        size="md"
-        class="absolute-top-right q-ma-md"
-        @click="$emit('close')" />
-
-      <!-- Camera Controls -->
-      <div
-        v-if="showControls"
-        class="absolute-bottom-left q-ma-md">
-        <!-- Torch Button -->
+        <!-- Close Button -->
         <q-btn
-          v-if="capabilities.torch"
+          v-if="!loading && !scanning"
           flat
           round
-          :icon="torchOn ? 'fas fa-flashlight' : 'far fa-lightbulb'"
+          icon="fas fa-times"
           color="white"
           size="md"
-          class="q-mb-sm"
-          @click="$emit('toggle-torch')" />
+          class="absolute-top-right q-ma-md close-button"
+          @click="$emit('close')" />
 
-        <!-- Camera Switch -->
-        <q-btn
-          v-if="cameraList.length > 1"
-          flat
-          round
-          icon="fas fa-camera-rotate"
-          color="white"
-          size="md"
-          class="q-mb-sm"
-          @click="switchToNextCamera" />
+        <!-- Camera Controls -->
+        <div
+          v-if="showControls"
+          class="absolute-bottom-left q-ma-md camera-controls">
+          <!-- Torch Button -->
+          <q-btn
+            v-if="capabilities.torch"
+            flat
+            round
+            :icon="torchOn ? 'fas fa-flashlight' : 'far fa-lightbulb'"
+            color="white"
+            size="md"
+            class="q-mb-sm"
+            @click="$emit('toggle-torch')" />
 
-        <!-- File Upload -->
-        <q-btn
-          flat
-          round
-          icon="fas fa-upload"
-          color="white"
-          size="md"
-          class="q-mb-sm"
-          @click="openFileDialog">
-          <q-tooltip>Upload Image</q-tooltip>
-        </q-btn>
-        <!-- Hidden file input for upload functionality -->
-        <input
-          ref="fileInput"
-          type="file"
-          accept="image/*"
-          multiple
-          style="display: none;"
-          @change="handleFileUpload">
-      </div>
+          <!-- Camera Switch -->
+          <q-btn
+            v-if="cameraList.length > 1"
+            flat
+            round
+            icon="fas fa-camera-rotate"
+            color="white"
+            size="md"
+            class="q-mb-sm"
+            @click="switchToNextCamera" />
 
-      <!-- Zoom Slider -->
-      <div
-        v-if="capabilities.zoom && showControls"
-        class="absolute-bottom-right q-ma-md">
-        <div class="zoom-container column items-center">
-          <q-icon
-            name="fas fa-search-plus"
+          <!-- File Upload -->
+          <q-btn
+            flat
+            round
+            icon="fas fa-upload"
             color="white"
-            size="sm"
-            class="q-mb-xs" />
-          <q-slider
-            :model-value="zoomLevel"
-            :min="cameraConstraints.zoom.min"
-            :max="cameraConstraints.zoom.max"
-            :step="cameraConstraints.zoom.step"
-            vertical
-            reverse
-            color="white"
-            track-color="transparent"
-            thumb-color="white"
-            style="height: 100px;"
-            @update:model-value="$emit('zoom-update', $event)" />
-          <q-icon
-            name="fas fa-search-minus"
-            color="white"
-            size="sm"
-            class="q-mt-xs" />
+            size="md"
+            class="q-mb-sm"
+            @click="openFileDialog">
+            <q-tooltip>Upload Image</q-tooltip>
+          </q-btn>
+          <!-- Hidden file input for upload functionality -->
+          <input
+            ref="fileInput"
+            type="file"
+            accept="image/*"
+            multiple
+            style="display: none;"
+            @change="handleFileUpload">
+        </div>
+
+        <!-- Zoom Slider -->
+        <div
+          v-if="capabilities.zoom && showControls"
+          class="absolute-bottom-right q-ma-md zoom-controls">
+          <div class="zoom-container column items-center">
+            <q-icon
+              name="fas fa-search-plus"
+              color="white"
+              size="sm"
+              class="q-mb-xs" />
+            <q-slider
+              :model-value="zoomLevel"
+              :min="cameraConstraints.zoom.min"
+              :max="cameraConstraints.zoom.max"
+              :step="cameraConstraints.zoom.step"
+              vertical
+              reverse
+              color="white"
+              track-color="transparent"
+              thumb-color="white"
+              style="height: 100px;"
+              @update:model-value="$emit('zoom-update', $event)" />
+            <q-icon
+              name="fas fa-search-minus"
+              color="white"
+              size="sm"
+              class="q-mt-xs" />
+          </div>
         </div>
       </div>
     </div>
@@ -192,7 +182,7 @@
 
 <script>
 /*!
- * Copyright (c) 2025 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2025 Digital Bazaar, Inc. All rights reserved. V3
  */
 import {computed, ref} from 'vue';
 
@@ -239,14 +229,14 @@ export default {
       type: Boolean,
       default: false
     },
-    formats: {
-      type: Array,
-      default: () => ['qr_code', 'pdf417', 'pdf417_enhanced', 'mrz']
-    },
+    // formats: {
+    //   type: Array,
+    //   default: () => ['qr_code', 'pdf417', 'pdf417_enhanced', 'mrz']
+    // },
     scanType: {
     type: String,
     required: true,
-    validator: value => ['mrz', 'barcode'].includes(value)
+    validator: value => ['mrz', 'barcode', 'auto'].includes(value)
     }
   },
   emits: [
@@ -259,39 +249,64 @@ export default {
     'stop-scan'
   ],
   setup(props, {emit}) {
-    // --- Refs for DOM Elements ---
-    const fileInput = ref(null);
-    const mrzContainer = ref(null); // Container for MRZ video + Dynamsoft UI
-    const videoContainer = ref(null); // Container for barcode video + overlays
+    // === CONTAINER REF ===
+    const cameraContainer = ref(null);
 
-    // --- Component State ---
+    // === UI STATE ===
+    const fileInput = ref(null);
     const currentCameraIndex = ref(0);
     const zoomLevel = ref(1);
 
-    // --- Computed Properties ---
-    const isMrzMode = computed(() => props.scanType === 'mrz');
+    // === COMPUTED PROPERTIES ===
+    // Show overlays only for barcode mode (MRZ camera mode uses native UI)
+    const showOverlays = computed(() => {
+      // Show overlays for any mode that uses video element (not Dynamsoft native UI)
+      const usesVideoElement = props.scanType === 'barcode' ||
+        props.scanType === 'auto';
 
-    const showVideo = computed(() =>
-      !props.loading && !props.cameraError
-    );
+      return usesVideoElement &&
+        !props.loading &&
+        !props.cameraError;
+    });
 
     const showControls = computed(() =>
-      showVideo.value && !props.loading
+      showOverlays.value && !props.loading
     );
 
-    const overlayClasses = computed(() => {
+    // Infer expected formats from scanType for overlay purposes
+    const expectedFormats = computed(() => {
+      // Infer formats from scanType for UI overlay purposes
+      if(props.scanType === 'mrz') {
+        return ['mrz'];
+      } else if(props.scanType === 'barcode') {
+        return ['qr_code', 'pdf417_enhanced', 'pdf417'];
+      } else if(props.scanType === 'auto') {
+        return ['qr_code', 'pdf417_enhanced', 'pdf417', 'mrz'];
+      }
+      return [];
+    });
 
-      // safety check - ensure formats array exists
-      if(!props.formats || !Array.isArray(props.formats)) {
+    // Dynamic overlay styling based on scan type
+    const overlayClasses = computed(() => {
+      if(!showOverlays.value) return '';
+
+      // Auto mode gets its own overlay size
+      if(props.scanType === 'auto') {
+        return 'scan-overlay--auto';
+      }
+
+      // Safety check - ensure formats array exists
+      const formats = expectedFormats.value;
+      if(!formats || !Array.isArray(formats)) {
         return 'scan-overlay--qr'; // default fallback
       }
 
-      const hasQR = props.formats.includes('qr_code');
-      const hasPDF417 = props.formats.includes('pdf417') ||
-        props.formats.includes('pdf417_enhanced');
-      const hasMRZ = props.formats.includes('mrz');
+      const hasQR = formats.includes('qr_code');
+      const hasPDF417 = formats.includes('pdf417') ||
+        formats.includes('pdf417_enhanced');
+      const hasMRZ = formats.includes('mrz');
 
-      if(props.formats.length === 1) {
+      if(formats.length === 1) {
         if(hasQR) {
           return 'scan-overlay--qr';
         }
@@ -308,18 +323,21 @@ export default {
     });
 
     const overlayText = computed(() => {
+      if(!showOverlays.value) return '';
 
-      // safety check - ensure formats array exists
-      if(!props.formats || !Array.isArray(props.formats)) {
+      // Safety check - ensure formats array exists
+      const formats = expectedFormats.value;
+      if(!formats || !Array.isArray(formats)) {
         return 'Hold QR code here'; // default fallback
       }
-      const hasQR = props.formats.includes('qr_code');
-      const hasPDF417 = props.formats.includes('pdf417') ||
-        props.formats.includes('pdf417_enhanced');
-      const hasMRZ = props.formats.includes('mrz');
 
-      if(props.formats.length === 1) {
-        if(hasQR) {
+      const hasQR = formats.includes('qr_code');
+      const hasPDF417 = formats.includes('pdf417') ||
+        formats.includes('pdf417_enhanced');
+      const hasMRZ = formats.includes('mrz');
+
+      if(formats.length === 1) {
+        if (hasQR) {
           return 'Hold QR code here';
         }
         if(hasPDF417) {
@@ -333,7 +351,7 @@ export default {
       return 'Hold document here';
     });
 
-    // --- Camera Control Methods ---
+    // === CAMERA CONTROL METHODS ===
     function switchToNextCamera() {
       if(props.cameraList.length <= 1) {
         return;
@@ -346,7 +364,8 @@ export default {
       emit('update-camera', nextCamera.deviceId);
     }
 
-    // --- File Upload Methods ---
+    // TODO: File Upload related methods - need thorough testing.
+    // === FILE UPLOAD METHODS ===
 
     /**
     * Handle file selection from input element.
@@ -369,50 +388,26 @@ export default {
       fileInput.value?.click();
     }
 
-    // --- Scan Control Methods ---
-
-    /**
-    * Handle start scan button click (if enabled in template).
-    * Currently commented out/removed in template but kept for future use.
-    */
-    function handleStartScan() {
-      console.log('START SCAN button clicked in ScannerUI');
-      emit('start-scan');
-    }
-
-    /**
-    * Handle stop scan button click (if enabled in template).
-    * Currently commented out/removed in template but kept for future use.
-    */
-    function handleStopScan() {
-      console.log('STOP SCAN button clicked in ScannerUI');
-      emit('stop-scan');
-    }
-
-    // --- Return Values for Template ---
+    // === RETURN VALUES FOR TEMPLATE ===
     return {
-      // DOM Refs
+      // DOM Refs - SINGLE CONTAINER APPROACH
       fileInput, // For file upload functionality
-      mrzContainer, // Container where CameraScanner inserts MRZ video
-      videoContainer, // Container where CameraScanner inserts barcode video
-      // videoRef, // No longer needed
+      cameraContainer, // CameraScanner will use this
       
       // State
       zoomLevel,
 
       // Computed Properties
-      showVideo,
+      showOverlays,
       showControls,
-      isMrzMode,
+      expectedFormats,
       overlayClasses,
       overlayText,
 
       // Methods
       switchToNextCamera,
       handleFileUpload,
-      openFileDialog,
-      handleStartScan,
-      handleStopScan
+      openFileDialog
     };
   }
 };
@@ -424,19 +419,50 @@ export default {
   overflow: hidden;
 }
 
-.mrz-container {
-  position: relative;
+.camera-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
   background: #000;
-  /* border: 5px solid red !important; */ /* Debug border */
-  /* box-sizing: border-box; */ /* Debug border */
 }
 
-.controls-bar {
-   z-index: 10;
+.overlay-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
 }
 
-.video-container {
-  position: relative;
+/* UI States - Always on top */
+.optical-scanner-container .absolute-center {
+  z-index: 10 !important;
+}
+
+.optical-scanner-container .loading-state,
+.optical-scanner-container .error-state {
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+/* Interactive Controls - Must be clickable and on top */
+.camera-controls,
+.close-button,
+.zoom-controls {
+  z-index: 6 !important;
+  pointer-events: auto !important;
+}
+
+.camera-controls .q-btn,
+.close-button,
+.zoom-controls .q-slider {
+  pointer-events: auto !important;
 }
 
 .scan-overlay-container {
@@ -449,6 +475,7 @@ export default {
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  z-index: 5;
 }
 
 .scan-overlay {
@@ -487,6 +514,12 @@ export default {
 .scan-overlay--multi {
   width: 500px;
   height: 200px;
+}
+
+/* Auto mode - Large overlay to accommodate all document types */
+.scan-overlay--auto {
+  width: 600px;
+  height: 400px;
 }
 
 .scan-instruction {
