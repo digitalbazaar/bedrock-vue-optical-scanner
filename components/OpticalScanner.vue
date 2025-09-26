@@ -24,8 +24,8 @@
 /*!
  * Copyright (c) 2025 Digital Bazaar, Inc. All rights reserved. V3
  */
-import {CameraScanner} from '@bedrock/web-optical-scanner';
 import {computed, onBeforeUnmount, onMounted, reactive, ref} from 'vue';
+import {CameraScanner} from '@bedrock/web-optical-scanner';
 import ScannerUI from './ScannerUI.vue';
 
 export default {
@@ -34,7 +34,8 @@ export default {
     ScannerUI
   },
   props: {
-    // NOTE: formats prop moved this logic to CameraScanner class and driven by scanType
+    // NOTE: formats prop moved this logic to CameraScanner class
+    // and driven by scanType
     // formats: {
     //   type: Array,
     //   default: () => ['qr_code', 'pdf417', 'pdf417_enhanced', 'mrz']
@@ -84,7 +85,7 @@ export default {
       torch: false
     });
 
-    // TODO: double check and remove this logic from OpticalScanner as 
+    // TODO: double check and remove this logic from OpticalScanner as
     // CameraScanner should be handle this
     const cameraConstraints = reactive({
       zoom: {min: 1, max: 8, step: 1}
@@ -105,7 +106,8 @@ export default {
 
     // === INITIALIZATION ===
     async function initializeCameraScanner() {
-      // console.log('Initializing CameraScanner with scanType:', props.scanType);
+      // console.log('Initializing CameraScanner with scanType:',
+      //   props.scanType);
 
       try {
         // Create CameraScanner with current configuration
@@ -116,13 +118,13 @@ export default {
         });
 
         // === Set up event listener for auto-scan ===
-        cameraScanner.on('result', (result) => {
+        cameraScanner.on('result', result => {
           console.log('Vue: Auto-scan result received:', result);
           scanning.value = false;
           emit('result', result);
         });
 
-        cameraScanner.on('error', (error) => {
+        cameraScanner.on('error', error => {
           console.log('Vue: Auto-scan error received:', error);
           scanning.value = false;
           emit('error', error);
@@ -140,76 +142,80 @@ export default {
 
     // === DELEGATION TO CAMERA SCANNER ===
     async function startCamera() {
-        if(!cameraScanner) {
-          console.error('CameraScanner not initialized');
-          return;
-        }
+      if(!cameraScanner) {
+        console.error('CameraScanner not initialized');
+        return;
+      }
 
-        loading.value = true;
-        cameraError.value = false;
+      loading.value = true;
+      cameraError.value = false;
 
-        try {
-          // === GET CONTAINER FROM UI ===
-          const targetContainer = scannerUIRef.value?.cameraContainer;
+      try {
+        // === GET CONTAINER FROM UI ===
+        const targetContainer = scannerUIRef.value?.cameraContainer;
 
-          console.log('Vue: Delegating camera setup and scanning to CameraScanner...');
+        console.log('Vue: Delegating camera setup and scanning to' +
+          ' CameraScanner...');
 
-          // === PURE DELEGATION ===
-          const result = await cameraScanner.start(targetContainer, { autoScan: true });
+        // === PURE DELEGATION ===
+        const result = await cameraScanner.start(
+          targetContainer,
+          {autoScan: true}
+        );
 
-          if(result.success) {
-            console.log('Vue: Camera and scanning started successfully');
-            console.log('Auto-scan initiated:', result.autoScanStarted);
-            // === UPDATE UI STATE FROM CAMERA SCANNER ===
-            await updateCameraInfo();
+        if(result.success) {
+          console.log('Vue: Camera and scanning started successfully');
+          console.log('Auto-scan initiated:', result.autoScanStarted);
+          // === UPDATE UI STATE FROM CAMERA SCANNER ===
+          await updateCameraInfo();
 
-          } else {
-            cameraError.value = true;
-            emit('error', {
-              message: result.error,
-              code: result.code || 'CAMERA_START_ERROR'
-            });
-          }
-
-        } catch(error) {
-          console.error('Vue: Camera start error:', error);
+        } else {
           cameraError.value = true;
           emit('error', {
-            message: error.message || 'Camera start failed',
-            code: error.code || 'CAMERA_START_ERROR'
+            message: result.error,
+            code: result.code || 'CAMERA_START_ERROR'
           });
-        } finally {
-          loading.value = false;
         }
+
+      } catch(error) {
+        console.error('Vue: Camera start error:', error);
+        cameraError.value = true;
+        emit('error', {
+          message: error.message || 'Camera start failed',
+          code: error.code || 'CAMERA_START_ERROR'
+        });
+      } finally {
+        loading.value = false;
       }
+    }
 
     // TODO: Comeback and double check if updateCameraInfo is needed here
     // CameraScanner should be able to manage.
     // Additionally, camera.js utils file functions can be reused.
 
     async function updateCameraInfo() {
-        if(!cameraScanner) {
-          return;
-        }
-
-        try {
-          // === PURE DELEGATION TO CAMERA SCANNER ===
-          const caps = cameraScanner.getCameraCapabilities();
-          capabilities.zoom = caps.zoom;
-          capabilities.torch = caps.torch;
-
-          if(caps.zoomRange) {
-            const {max = 8, min = 1, step = 1} = caps.zoomRange;
-            Object.assign(cameraConstraints.zoom, {min, max, step});
-          }
-
-          const devices = await cameraScanner.getCameraList();
-          cameraList.value = devices;
-
-        } catch(error) {
-          console.error('Error updating camera info:', error);
-        }
+      if(!cameraScanner) {
+        return;
       }
+
+      try {
+        // === PURE DELEGATION TO CAMERA SCANNER ===
+        const caps = cameraScanner.getCameraCapabilities();
+        capabilities.zoom = caps.zoom;
+        capabilities.torch = caps.torch;
+
+        if(caps.zoomRange) {
+          const {max = 8, min = 1, step = 1} = caps.zoomRange;
+          Object.assign(cameraConstraints.zoom, {min, max, step});
+        }
+
+        const devices = await cameraScanner.getCameraList();
+        cameraList.value = devices;
+
+      } catch(error) {
+        console.error('Error updating camera info:', error);
+      }
+    }
 
     function stopCamera() {
       // Cancel any ongoing operations
@@ -239,7 +245,8 @@ export default {
 
       } catch(error) {
         console.error('File scanning error:', error);
-        // Only reset scanning state if events weren't emitted (validation errors)
+        // Only reset scanning state if events weren't emitted
+        // (validation errors)
         if(scanning.value === true) {
           scanning.value = false;
         }
@@ -247,7 +254,7 @@ export default {
         //   message: error.message || 'File scanning failed',
         //   code: error.code || 'FILE_SCAN_ERROR'
         // });
-      } 
+      }
       // finally {
       //         scanning.value = false;
       //       }

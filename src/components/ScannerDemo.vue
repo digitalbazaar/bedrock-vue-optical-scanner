@@ -6,9 +6,11 @@
     <div class="q-mb-md">
       <q-card class="q-pa-md">
         <q-card-section>
-          <div class="text-h6">Scan Configuration</div>
+          <div class="text-h6">
+            Scan Configuration
+          </div>
         </q-card-section>
-        
+
         <q-card-section>
           <q-option-group
             v-model="scanType"
@@ -34,9 +36,13 @@
     <div class="q-mb-md">
       <q-card class="bg-blue-1">
         <q-card-section>
-          <div class="text-subtitle2 text-blue-8">Architecture Flow:</div>
+          <div class="text-subtitle2 text-blue-8">
+            Architecture Flow:
+          </div>
           <div class="text-body2 text-blue-7">
-            Vue (UI Only) → CameraScanner (Business Logic) → OpticalScanner (Core Engine) → Plugins (Format-Specific)
+            <span>Vue (UI Only) -> CameraScanner (Business Logic)</span><br>
+            <span>-> OpticalScanner (Core Engine)</span><br>
+            <span>-> Plugins (Format-Specific)</span>
           </div>
         </q-card-section>
       </q-card>
@@ -55,17 +61,19 @@
     <div class="q-mb-md">
       <q-card class="bg-grey-1">
         <q-card-section>
-          <div class="text-subtitle2">Current Configuration:</div>
+          <div class="text-subtitle2">
+            Current Configuration:
+          </div>
           <div class="text-body2">
-            <strong>Scan Type:</strong> {{ scanType }}<br>
-            <strong>Scan Mode:</strong> {{ scanMode }}<br>
-            <strong>License Key:</strong> {{ licenseKey ? 'Configured' : 'Not configured' }}<br>
-            <strong>Expected Behavior:</strong> {{ expectedBehavior }}
+            <strong>Scan Type:</strong> {{scanType}}<br>
+            <strong>Scan Mode:</strong> {{scanMode}}<br>
+            <strong>License Key:</strong>
+            {{licenseKey ? 'Configured' : 'Not configured'}}<br>
+            <strong>Expected Behavior:</strong> {{expectedBehavior}}
           </div>
         </q-card-section>
       </q-card>
     </div>
-
 
     <!-- Scanner Modal -->
     <q-dialog
@@ -100,23 +108,28 @@
           <q-banner class="bg-blue-1 text-blue-8 q-mb-md">
             <div class="text-body2">
               <strong>Architecture Test Passed!</strong><br>
-              Vue → CameraScanner → OpticalScanner → Plugins delegation worked successfully
+              Vue -> CameraScanner -> OpticalScanner -><br>
+              Plugins delegation worked successfully
             </div>
           </q-banner>
 
           <!-- Scan Metadata -->
           <div class="q-mb-md">
-            <strong>Scan Type:</strong> {{ scanResult.scanType || 'Unknown' }}<br>
-            <strong>Format Detected:</strong> {{ scanResult.format || scanResult.type }}<br>
-            <strong>Timestamp:</strong> {{ scanResult.timestamp || 'Not provided' }}<br>
-            <strong>Success:</strong> {{ scanResult.success ? 'Yes' : 'No' }}
+            <strong>Scan Type:</strong> {{scanResult.scanType || 'Unknown'}}<br>
+            <strong>Format Detected:</strong>
+            {{scanResult.format || scanResult.type}}<br>
+            <strong>Timestamp:</strong>
+            {{scanResult.timestamp || 'Not provided'}}<br>
+            <strong>Success:</strong> {{scanResult.success ? 'Yes' : 'No'}}
           </div>
 
           <!-- MRZ Results -->
           <div v-if="scanResult.type === 'MRZ'">
             <q-separator class="q-mb-md" />
-            <div class="text-subtitle1 text-blue-8 q-mb-sm">MRZ Document Data:</div>
-            
+            <div class="text-subtitle1 text-blue-8 q-mb-sm">
+              MRZ Document Data:
+            </div>
+
             <div
               v-if="scanResult.valid"
               class="text-green text-subtitle2 q-mb-sm">
@@ -127,40 +140,53 @@
               class="text-red text-subtitle2 q-mb-sm">
               MRZ Validation: Invalid
             </div>
-            
+
             <q-list dense>
               <q-item
                 v-for="(value, key) in scanResult.fields"
                 :key="key"
                 class="q-py-xs">
                 <q-item-section>
-                  <strong>{{ formatFieldName(key) }}:</strong> {{ value || 'N/A' }}
+                  <strong>{{formatFieldName(key)}}:</strong> {{value || 'N/A'}}
                 </q-item-section>
               </q-item>
             </q-list>
 
             <!-- Validation Details -->
-            <div v-if="scanResult.validation" class="q-mt-md">
+            <div
+              v-if="scanResult.validation"
+              class="q-mt-md">
               <q-card class="bg-grey-1">
                 <q-card-section class="bg-grey-3">
                   <div class="text-subtitle2">
                     Validation Details
-                    <q-icon name="info" class="q-ml-sm" />
+                    <q-icon
+                      name="info"
+                      class="q-ml-sm" />
                   </div>
                 </q-card-section>
                 <q-card-section class="q-pa-none">
-                  <div style="
+                  <div
+                    style="
                     max-height: 250px;
                     overflow: auto;
                     border-top: 1px solid rgba(0,0,0,0.1);
                   ">
                     <div style="padding: 16px;">
-                      <div><strong>Overall Status:</strong> {{ scanResult.validation.overallStatus }}</div>
-                      <div v-if="scanResult.validation.statistics">
-                        <strong>Completeness:</strong> {{ scanResult.validation.statistics.overallCompleteness }}%
+                      <div>
+                        <strong>Overall Status:</strong>
+                        {{scanResult.validation.overallStatus}}
                       </div>
-                      <div v-if="scanResult.invalidFields && scanResult.invalidFields.length > 0">
-                        <strong>Invalid Fields:</strong> {{ scanResult.invalidFields.join(', ') }}
+                      <div v-if="scanResult.validation.statistics">
+                        <strong>Completeness:</strong>
+                        {{scanResult.validation.statistics.overallCompleteness}}
+                        %
+                      </div>
+                      <div
+                        v-if="scanResult.invalidFields &&
+                          scanResult.invalidFields.length > 0">
+                        <strong>Invalid Fields:</strong>
+                        {{scanResult.invalidFields.join(', ')}}
                       </div>
                     </div>
                   </div>
@@ -172,16 +198,18 @@
           <!-- Driver License Results -->
           <div v-else-if="scanResult.type === 'DL'">
             <q-separator class="q-mb-md" />
-            <div class="text-subtitle1 text-purple-8 q-mb-sm">Driver License Data:</div>
-            
+            <div class="text-subtitle1 text-purple-8 q-mb-sm">
+              Driver License Data:
+            </div>
+
             <q-list dense>
               <q-item
                 v-for="(fieldData, key) in scanResult.fields"
                 :key="key"
                 class="q-py-xs">
                 <q-item-section>
-                  <strong>{{ key }}:</strong> 
-                  {{ formatDriverLicenseField(fieldData) }}
+                  <strong>{{key}}:</strong>
+                  {{formatDriverLicenseField(fieldData)}}
                 </q-item-section>
               </q-item>
             </q-list>
@@ -190,9 +218,14 @@
           <!-- Standard Barcode Results -->
           <div v-else>
             <q-separator class="q-mb-md" />
-            <div class="text-subtitle1 text-orange-8 q-mb-sm">Barcode Content:</div>
+            <div class="text-subtitle1 text-orange-8 q-mb-sm">
+              Barcode Content:
+            </div>
             <div class="bg-grey-1 q-pa-md rounded-borders">
-              <pre style="white-space: pre-wrap; word-break: break-all;">{{ scanResult.text || 'No text content' }}</pre>
+              <pre
+                style="white-space: pre-wrap; word-break: break-all;">
+                {{scanResult.text || 'No text content'}}
+              </pre>
             </div>
           </div>
 
@@ -201,27 +234,30 @@
             <q-card-section class="bg-grey-3">
               <div class="text-subtitle2">
                 🛠️ Raw Scan Data (Debug)
-                <q-icon name="code" class="q-ml-sm" />
+                <q-icon
+                  name="code"
+                  class="q-ml-sm" />
               </div>
             </q-card-section>
             <q-card-section class="q-pa-none">
-              <div style="
+              <div
+                style="
                 max-height: 250px;
                 overflow: auto;
                 border-top: 1px solid rgba(0,0,0,0.1);
               ">
-                <pre style="
-                  white-space: pre-wrap; 
+                <pre
+                  style="
+                  white-space: pre-wrap;
                   font-size: 12px;
                   word-break: break-all;
                   margin: 0;
                   padding: 16px;
-                ">{{ JSON.stringify(scanResult, null, 2) }}</pre>
+                ">{{JSON.stringify(scanResult, null, 2)}}</pre>
               </div>
             </q-card-section>
           </q-card>
         </q-card-section>
-     
       </q-card>
     </div>
 
@@ -235,8 +271,8 @@
             Scan Error
           </div>
           <div class="text-red-8 q-mt-sm">
-            <strong>Message:</strong> {{ scanError.message || scanError }}<br>
-            <strong>Code:</strong> {{ scanError.code || 'Unknown' }}
+            <strong>Message:</strong> {{scanError.message || scanError}}<br>
+            <strong>Code:</strong> {{scanError.code || 'Unknown'}}
           </div>
         </q-card-section>
       </q-card>
@@ -246,8 +282,8 @@
 
 <script>
 // V3
-import OpticalScanner from '../../components/OpticalScanner.vue';
 import {computed, ref} from 'vue';
+import OpticalScanner from '../../components/OpticalScanner.vue';
 
 export default {
   name: 'ScannerDemo',
@@ -278,7 +314,7 @@ export default {
 
     // Dynamic tip text based on scan type
     const tipText = computed(() => {
-      if (scanType.value === 'mrz') {
+      if(scanType.value === 'mrz') {
         return 'Position passport or ID card MRZ area in the frame';
       } else {
         return 'Position QR code or barcode within the frame';
@@ -287,8 +323,8 @@ export default {
 
     // Expected behavior description
     const expectedBehavior = computed(() => {
-      if (scanType.value === 'mrz') {
-        if (licenseKey) {
+      if(scanType.value === 'mrz') {
+        if(licenseKey) {
           return 'Dynamsoft native camera UI with document detection';
         } else {
           return 'Will show license key error - MRZ requires valid license';
@@ -332,17 +368,19 @@ export default {
     }
 
     function formatDriverLicenseField(fieldData) {
-      if (typeof fieldData === 'string') {
+      if(typeof fieldData === 'string') {
         return fieldData;
       }
-      
-      if (fieldData && typeof fieldData === 'object') {
-        if (fieldData.value) {
-          return `${fieldData.value}${fieldData.description ? ` (${fieldData.description})` : ''}`;
+
+      if(fieldData && typeof fieldData === 'object') {
+        if(fieldData.value) {
+          return `${fieldData.value}${
+            fieldData.description ? ` (${fieldData.description})` : ''
+          }`;
         }
         return JSON.stringify(fieldData);
       }
-      
+
       return fieldData || 'N/A';
     }
 

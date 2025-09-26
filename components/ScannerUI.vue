@@ -2,7 +2,7 @@
   <!--
     ARCHITECTURE: Separated Areas for Clean DOM Management
     - camera-area: CameraScanner manages video/Dynamsoft UI (z-index: 1)
-    - UI states: Vue manages error/loading states (z-index: 10) 
+    - UI states: Vue manages error/loading states (z-index: 10)
     - overlay-area: Vue manages scan guides & controls (z-index: 2-6)
     This prevents DOM conflicts between Vue and CameraScanner
   -->
@@ -59,7 +59,8 @@
       </slot>
     </div>
 
-    <!-- Vue's Domain: Overlays & Controls (only show for barcode mode, hidden for MRZ camera mode) -->
+    <!-- Vue's Domain: Overlays & Controls
+         (only show for barcode mode, hidden for MRZ camera mode) -->
     <div
       v-if="showOverlays"
       class="overlay-area">
@@ -234,9 +235,9 @@ export default {
     //   default: () => ['qr_code', 'pdf417', 'pdf417_enhanced', 'mrz']
     // },
     scanType: {
-    type: String,
-    required: true,
-    validator: value => ['mrz', 'barcode', 'auto'].includes(value)
+      type: String,
+      required: true,
+      validator: value => ['mrz', 'barcode', 'auto'].includes(value)
     }
   },
   emits: [
@@ -260,7 +261,8 @@ export default {
     // === COMPUTED PROPERTIES ===
     // Show overlays only for barcode mode (MRZ camera mode uses native UI)
     const showOverlays = computed(() => {
-      // Show overlays for any mode that uses video element (not Dynamsoft native UI)
+      // Show overlays for any mode that uses video element
+      // (not Dynamsoft native UI)
       const usesVideoElement = props.scanType === 'barcode' ||
         props.scanType === 'auto';
 
@@ -288,7 +290,9 @@ export default {
 
     // Dynamic overlay styling based on scan type
     const overlayClasses = computed(() => {
-      if(!showOverlays.value) return '';
+      if(!showOverlays.value) {
+        return '';
+      }
 
       // Auto mode gets its own overlay size
       if(props.scanType === 'auto') {
@@ -323,7 +327,9 @@ export default {
     });
 
     const overlayText = computed(() => {
-      if(!showOverlays.value) return '';
+      if(!showOverlays.value) {
+        return '';
+      }
 
       // Safety check - ensure formats array exists
       const formats = expectedFormats.value;
@@ -337,7 +343,7 @@ export default {
       const hasMRZ = formats.includes('mrz');
 
       if(formats.length === 1) {
-        if (hasQR) {
+        if(hasQR) {
           return 'Hold QR code here';
         }
         if(hasPDF417) {
@@ -370,6 +376,9 @@ export default {
     /**
     * Handle file selection from input element.
     * Converts FileList to Array and emits to parent component.
+    *
+    * @param {Event} event - The change event triggered by the file input
+    *  element.
     */
     function handleFileUpload(event) {
       const files = Array.from(event.target.files);
@@ -393,7 +402,7 @@ export default {
       // DOM Refs - SINGLE CONTAINER APPROACH
       fileInput, // For file upload functionality
       cameraContainer, // CameraScanner will use this
-      
+
       // State
       zoomLevel,
 
