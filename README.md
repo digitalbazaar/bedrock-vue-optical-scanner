@@ -12,7 +12,23 @@ This library is part of a two-tier architecture for optical scanning:
 ### Core Libraries
 
 - **@bedrock/web-optical-scanner**: Low-level scanning engine with plugin architecture
+  - **CameraScanner**: High-level abstraction for camera management and continuous scanning
+  - **OpticalScanner**: Core scanning engine with plugin system
 - **@bedrock/vue-optical-scanner**: Vue-specific UI components (this library)
+
+### Architecture Benefits
+
+#### Separation of Concerns
+
+- **Vue Layer**: Handles only UI presentation, Quasar integration, and Vue-specific reactivity
+- **Web Module**: Manages all scanning logic, camera control, and business rules
+- **Clean Delegation**: Vue components pass containers to CameraScanner and handle results via events
+
+#### Framework Agnostic Design
+
+- All scanning improvements happen in one place (web module)
+- Vue components can be rapidly duplicated for React, Angular, etc.
+- Framework wrappers focus only on what frameworks do best (UI, reactivity, styling)
 
 ### Architecture Principles
 
@@ -28,14 +44,16 @@ The underlying `@bedrock/web-optical-scanner` provides:
 - Extensible plugin system for adding new scanning formats
 - Future-ready for web worker threading (API designed to support this)
 
-#### Vue UI Components
+#### Vue UI Components (Thin Wrappers)
 
 This library provides:
 
-- Reusable Vue components for optical scanning interfaces
-- Camera handling utilities and helpers
-- Simple APIs with input props and async event outputs
-- Modular components that can be used independently or together
+- **Thin wrapper components** that delegate all scanning complexity to CameraScanner
+- Vue-specific UI components focused purely on presentation and framework integration
+- Camera display containers that CameraScanner manages internally
+- Simple prop-based configuration (scanType, scanMode, licenseKey)
+- Event-based result handling with no business logic in Vue layer
+- **Easy duplication**: Components designed for rapid porting to React/other frameworks
 
 ### Supported Formats
 
@@ -48,7 +66,9 @@ This library provides:
 
 ### OpticalScanner
 
-The main scanning component that orchestrates camera access and scanning operations.
+A thin wrapper component that delegates camera and scanning operations to CameraScanner from `@bedrock/web-optical-scanner`.
+
+**Architecture**: This component provides Vue-specific UI and event handling while CameraScanner handles all scanning complexity internally.
 
 **Props:**
 
@@ -91,7 +111,8 @@ Lower-level UI component that handles camera display and controls.
 </template>
 
 <script>
-import { OpticalScanner } from '@bedrock/vue-optical-scanner';
+import {OpticalScanner} from '@bedrock/vue-optical-scanner';
+// OpticalScanner now uses CameraScanner delegation internally
 
 export default {
   components: { OpticalScanner },
