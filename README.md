@@ -112,10 +112,10 @@ Lower-level UI component that handles camera display and controls.
 
 <script>
 import {OpticalScanner} from '@bedrock/vue-optical-scanner';
-// OpticalScanner now uses CameraScanner delegation internally
+// OpticalScanner uses CameraScanner delegation internally
 
 export default {
-  components: { OpticalScanner },
+  components: {OpticalScanner},
   data() {
     return {
       scannerOpen: false
