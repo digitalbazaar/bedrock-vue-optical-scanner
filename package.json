@@ -19,7 +19,7 @@
     "lint:fix": "eslint --ext .cjs,.js,.vue . --fix"
   },
   "dependencies": {
-    "@bedrock/web-optical-scanner": "bparth24/bedrock-web-optical-scanner#refactor-camera-scanner"
+    "@bedrock/web-optical-scanner": "digitalbazaar/bedrock-web-optical-scanner#refactor-camera-scanner-v1"
   },
   "peerDependencies": {
     "@bedrock/quasar": "^10.0.0",
