@@ -291,7 +291,7 @@ export default {
   setup() {
     // Add real license key
     // eslint-disable-next-line max-len
-    const licenseKey = '';
+    const licenseKey = 'DLS2eyJoYW5kc2hha2VDb2RlIjoiMTA0NjQ0MTIxLU1UQTBOalEwTVRJeExYZGxZaTFVY21saGJGQnliMm8iLCJtYWluU2VydmVyVVJMIjoiaHR0cHM6Ly9tZGxzLmR5bmFtc29mdG9ubGluZS5jb20iLCJvcmdhbml6YXRpb25JRCI6IjEwNDY0NDEyMSIsInN0YW5kYnlTZXJ2ZXJVUkwiOiJodHRwczovL3NkbHMuZHluYW1zb2Z0b25saW5lLmNvbSIsImNoZWNrQ29kZSI6NTUxMjk4MTI3fQ==';
 
     const scanner = ref(null);
     const scannerOpen = ref(false);
