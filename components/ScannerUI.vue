@@ -60,14 +60,14 @@
     </div>
 
     <!-- Vue's Domain: Overlays & Controls
-         (only show for barcode mode, hidden for MRZ camera mode) -->
+      (only show for barcode mode, hidden for MRZ camera mode) -->
     <div
       v-if="showOverlays"
       class="overlay-area">
       <div class="scan-overlay-container">
         <!-- QR Box Overlay -->
         <div
-          v-if="showQrBox"
+          v-if="effectiveShowQrBox"
           class="qr-box-overlay">
           <div
             :class="overlayClasses"
@@ -250,6 +250,8 @@ export default {
     'stop-scan'
   ],
   setup(props, {emit}) {
+    // console.log('ScannerUI SETUP CALLED');
+
     // === CONTAINER REF ===
     const cameraContainer = ref(null);
 
@@ -265,15 +267,37 @@ export default {
       // (not Dynamsoft native UI)
       const usesVideoElement = props.scanType === 'barcode' ||
         props.scanType === 'auto';
+      const result = usesVideoElement && !props.loading && !props.cameraError;
 
-      return usesVideoElement &&
-        !props.loading &&
-        !props.cameraError;
+      // console.log('showOverlays:', {
+      //   scanType: props.scanType,
+      //   usesVideoElement,
+      //   loading: props.loading,
+      //   cameraError: props.cameraError,
+      //   result
+      // });
+
+      return result;
     });
 
     const showControls = computed(() =>
       showOverlays.value && !props.loading
     );
+
+    // Make showQrBox mode-aware
+    const effectiveShowQrBox = computed(() => {
+      // Only show QR box for barcode-based modes
+      // MRZ uses Dynamsoft native UI (no Vue overlays)
+      const isBarcodeMode = ['barcode', 'auto'].includes(props.scanType);
+      const result = isBarcodeMode && props.showQrBox;
+      // console.log('effectiveShowQrBox:', {
+      //   scanType: props.scanType,
+      //   isBarcodeMode,
+      //   showQrBox: props.showQrBox,
+      //   result
+      // });
+      return result;
+    });
 
     // Infer expected formats from scanType for overlay purposes
     const expectedFormats = computed(() => {
@@ -412,6 +436,7 @@ export default {
       expectedFormats,
       overlayClasses,
       overlayText,
+      effectiveShowQrBox,
 
       // Methods
       switchToNextCamera,

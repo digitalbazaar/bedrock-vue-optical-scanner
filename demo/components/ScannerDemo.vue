@@ -48,6 +48,30 @@
       </q-card>
     </div>
 
+    <div class="q-mb-md">
+      <q-card class="q-pa-md">
+        <q-card-section>
+          <div class="text-h6">
+            UI Props Testing
+          </div>
+        </q-card-section>
+
+        <q-card-section>
+          <!-- Show QR Box Toggle -->
+          <q-toggle
+            v-model="showQrBox"
+            label="Show QR Box Overlay"
+            class="q-mb-md" />
+
+          <!-- Torch On Toggle -->
+          <q-toggle
+            v-model="torchOn"
+            label="Torch On (Initial State)"
+            class="q-mb-md" />
+        </q-card-section>
+      </q-card>
+    </div>
+
     <!-- Start Scanner Button -->
     <div class="q-mb-md text-center">
       <q-btn
@@ -67,8 +91,7 @@
           <div class="text-body2">
             <strong>Scan Type:</strong> {{scanType}}<br>
             <strong>Scan Mode:</strong> {{scanMode}}<br>
-            <strong>License Key:</strong>
-            {{licenseKey ? 'Configured' : 'Not configured'}}<br>
+            <strong>Tip Text:</strong> "{{tipText}}"<br>
             <strong>Expected Behavior:</strong> {{expectedBehavior}}
           </div>
         </q-card-section>
@@ -76,6 +99,8 @@
     </div>
 
     <!-- Scanner Modal -->
+    <!-- eslint-disable-next-line max-len -->
+    <!-- :formats="['pdf417_enhanced']" or :formats="null" or just remove the prop entirely -->
     <q-dialog
       v-model="scannerOpen"
       maximized
@@ -85,8 +110,11 @@
         v-if="scannerOpen"
         ref="scanner"
         :scan-type="scanType"
-        :license-key="licenseKey"
+        :scan-mode="scanMode"
+        :formats="null"
         :tip-text="tipText"
+        :show-qr-box="showQrBox"
+        :torch-on="torchOn"
         @result="onResult"
         @error="onError"
         @close="scannerOpen = false" />
@@ -289,10 +317,6 @@ export default {
   name: 'ScannerDemo',
   components: {OpticalScanner},
   setup() {
-    // Add real license key
-    // eslint-disable-next-line max-len
-    const licenseKey = 'DLS2eyJoYW5kc2hha2VDb2RlIjoiMTA0NjQ0MTIxLU1UQTBOalEwTVRJeExYZGxZaTFVY21saGJGQnliMm8iLCJtYWluU2VydmVyVVJMIjoiaHR0cHM6Ly9tZGxzLmR5bmFtc29mdG9ubGluZS5jb20iLCJvcmdhbml6YXRpb25JRCI6IjEwNDY0NDEyMSIsInN0YW5kYnlTZXJ2ZXJVUkwiOiJodHRwczovL3NkbHMuZHluYW1zb2Z0b25saW5lLmNvbSIsImNoZWNrQ29kZSI6NTUxMjk4MTI3fQ==';
-
     const scanner = ref(null);
     const scannerOpen = ref(false);
     const scanResult = ref(null);
@@ -311,6 +335,8 @@ export default {
       {label: 'All Formats', value: 'all'},
       {label: 'Exhaustive Scan', value: 'exhaustive'}
     ];
+    const showQrBox = ref(true);
+    const torchOn = ref(false);
 
     // Dynamic tip text based on scan type
     const tipText = computed(() => {
@@ -324,22 +350,20 @@ export default {
     // Expected behavior description
     const expectedBehavior = computed(() => {
       if(scanType.value === 'mrz') {
-        if(licenseKey) {
-          return 'Dynamsoft native camera UI with document detection';
-        } else {
-          return 'Will show license key error - MRZ requires valid license';
-        }
-      } else {
-        return 'Video stream with Vue overlay guides for barcodes';
+        return 'MRZ scanning with Dynamsoft (requires license in config)';
+      } else if(scanType.value === 'barcode') {
+        return 'Open-source barcode scanning (QR + PDF417)';
+      } else if(scanType.value === 'auto') {
+        return 'Auto-detect: tries all available formats';
       }
+      return 'Video stream with overlay guides';
     });
 
     function openScanner() {
-      console.log('openScanner called with config:', {
-        scanType: scanType.value,
-        scanMode: scanMode.value,
-        hasLicense: !!licenseKey
-      });
+      // console.log('openScanner called with config:', {
+      //   scanType: scanType.value,
+      //   scanMode: scanMode.value
+      // });
       // Clear previous results
       scanResult.value = null;
       scanError.value = null;
@@ -394,8 +418,9 @@ export default {
       scanTypeOptions,
       scanModeOptions,
       tipText,
+      showQrBox,
+      torchOn,
       expectedBehavior,
-      licenseKey,
       openScanner,
       onResult,
       onError,

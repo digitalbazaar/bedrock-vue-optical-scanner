@@ -34,12 +34,15 @@ export default {
     ScannerUI
   },
   props: {
-    // NOTE: formats prop moved this logic to CameraScanner class
-    // and driven by scanType
-    // formats: {
-    //   type: Array,
-    //   default: () => ['qr_code', 'pdf417', 'pdf417_enhanced', 'mrz']
-    // },
+    // NOTE: formats prop to override scanType (power-user mode)
+    formats: {
+      type: Array,
+      default: null, // null = use scanType default or ['pdf417_enhanced']
+      validator: value => {
+        const validFormats = ['pdf417_enhanced'];
+        return value === null || value.every(f => validFormats.includes(f));
+      }
+    },
     scanType: {
       type: String,
       required: true,
@@ -60,14 +63,12 @@ export default {
     torchOn: {
       type: Boolean,
       default: false
-    },
-    licenseKey: {
-      type: String,
-      default: ''
     }
   },
   emits: ['result', 'error', 'close'],
   setup(props, {emit}) {
+    console.log('🔍 Props:', props);
+
     // === CAMERA SCANNER INSTANCE ===
     let cameraScanner = null;
     let abortController = new AbortController();
@@ -107,14 +108,14 @@ export default {
     // === INITIALIZATION ===
     async function initializeCameraScanner() {
       // console.log('Initializing CameraScanner with scanType:',
-      //   props.scanType);
+      //  props.scanType);
 
       try {
         // Create CameraScanner with current configuration
         cameraScanner = new CameraScanner({
           scanType: props.scanType,
           scanMode: props.scanMode,
-          licenseKey: props.licenseKey
+          formats: props.formats
         });
 
         // === Set up event listener for auto-scan ===

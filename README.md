@@ -16,6 +16,17 @@ This library is part of a two-tier architecture for optical scanning:
   - **OpticalScanner**: Core scanning engine with plugin system
 - **@bedrock/vue-optical-scanner**: Vue-specific UI components (this library)
 
+### License Key Management
+
+License keys are managed through bedrock config rather than component props:
+
+**Why This Design?**
+
+- **Separation of Concerns:** License keys are deployment/environment concerns, not component concerns
+- **Future-Proof:** Makes it easy to swap scanning providers without changing component APIs
+- **No Breaking Changes:** Can remove third-party dependencies without affecting component usage
+- **Single Source of Truth:** Configure once in app config, use everywhere
+
 ### Architecture Benefits
 
 #### Separation of Concerns
@@ -51,16 +62,49 @@ This library provides:
 - **Thin wrapper components** that delegate all scanning complexity to CameraScanner
 - Vue-specific UI components focused purely on presentation and framework integration
 - Camera display containers that CameraScanner manages internally
-- Simple prop-based configuration (scanType, scanMode, licenseKey)
+- Simple prop-based configuration (scanType, scanMode, etc.)
 - Event-based result handling with no business logic in Vue layer
 - **Easy duplication**: Components designed for rapid porting to React/other frameworks
 
 ### Supported Formats
 
-- **QR Codes**: Standard QR code scanning
-- **PDF417**: Standard PDF417 barcode format
-- **Enhanced PDF417**: Advanced PDF417 with additional processing for driver licenses
-- **MRZ**: Machine Readable Zone for passports and ID documents
+- **QR Codes**: Standard QR code scanning (open-source)
+- **PDF417**: Standard PDF417 barcode format (open-source)
+- **MRZ**: Machine Readable Zone for passports and ID documents (requires license)
+
+**Advanced/Legacy:**
+
+- **PDF417 Enhanced**: Advanced PDF417 with driver license parsing (accessible via `formats` prop
+    which override scanType prop value.)
+  - Used for backward compatibility with older implementations or if end client requests to use dynamsoft
+    for PDF417 scan over open source PDF417 scan.
+  - Requires Dynamsoft license if using Dynamsoft engine
+  - Not exposed in public API by default
+
+## Configuration
+
+### License Key Setup (Required for MRZ Scanning)
+
+MRZ scanning requires a Dynamsoft license key. Configure it in bedrock app's config:
+
+**File:** By default, it is `bedrock-web-optical-scanner/lib/config.js`. However, for a differet app/use case it can be - `your-app/lib/config.js`.
+
+```javascript
+import {config} from '@bedrock/web';
+
+config.opticalScanner = {
+  thirdParty: {
+    dynamsoft: {
+      licenseKey: 'YOUR-DYNAMSOFT-LICENSE-KEY-HERE'
+    }
+  }
+};
+
+// Component reads automatically
+const licenseKey = getDynamsoftLicense();  // From @bedrock/web-optical-scanner
+```
+
+**Note:** The component automatically reads the license from config and do not need to pass it as a prop.
 
 ## Components
 
@@ -70,6 +114,33 @@ A thin wrapper component that delegates camera and scanning operations to Camera
 
 **Architecture**: This component provides Vue-specific UI and event handling while CameraScanner handles all scanning complexity internally.
 
+#### Core Props (All Modes)
+
+- **`scanType`** (required): `'mrz'`, `'barcode'`, or `'auto'`
+  - `'mrz'`: Passport/ID card scanning
+  - `'barcode'`: QR codes and PDF417 barcodes
+  - `'auto'`: Auto-detect any supported format
+
+- **`scanMode`**: `'first'` (default), `'all'`, or `'exhaustive'`
+  - `'first'`: Return as soon as any format is detected
+  - `'all'`: Return when all specified formats found
+  - `'exhaustive'`: Let all plugins complete their attempts
+
+- **`tipText`**: Instruction text shown to users
+
+#### Barcode-Specific Props
+
+**Note:** These props only apply to `'barcode'` and `'auto'` modes. `showQrBox` prop value is automatically ignored for `'mrz'` mode (which uses Dynamsoft's native UI).
+
+- **`showQrBox`** (Boolean, default: `true`): Show yellow scanning overlay guide
+- **`torchOn`** (Boolean, default: `false`): Enable camera flashlight on start
+
+#### Advanced Props
+
+- **`formats`** (Array|null, default: `null`): Override default formats for scanType
+  - Example: `:formats="['pdf417_enhanced']"` for legacy driver license parsing
+  - **Note:** This is for advanced use cases and legacy support only
+
 **Props:**
 
 - `scanType` (required): `'mrz'` or `'barcode'`
@@ -77,7 +148,6 @@ A thin wrapper component that delegates camera and scanning operations to Camera
 - `tipText`: Instruction text for users
 - `showQrBox`: Boolean to show/hide scanning frame overlay
 - `torchOn`: Boolean to control camera flash
-- `licenseKey`: Dynamsoft License key for enhanced scanning features
 
 **Events:**
 
@@ -91,17 +161,16 @@ Lower-level UI component that handles camera display and controls.
 
 ## Usage
 
-### Basic Usage
+### Basic Example - Barcode Scanning
 
 ```vue
 <template>
   <div>
-    <q-btn @click="openScanner">Start Scan</q-btn>
+    <q-btn @click="openScanner">Scan Barcode</q-btn>
     
     <q-dialog v-model="scannerOpen" maximized>
       <OpticalScanner
         scan-type="barcode"
-        scan-mode="first"
         @result="onResult"
         @error="onError"
         @close="scannerOpen = false"
@@ -134,7 +203,39 @@ export default {
 </script>
 ```
 
+### Basic Example - MRZ Scanning (Passport/ID)
+
+```vue
+<template>
+  <OpticalScanner
+    scan-type="mrz"
+    tip-text="Position passport MRZ area in frame"
+    @result="onMrzResult"
+    @error="onError"
+  />
+</template>
+
+<script>
+import {OpticalScanner} from '@bedrock/vue-optical-scanner';
+// OpticalScanner uses CameraScanner delegation internally
+
+export default {
+  methods: {
+    onMrzResult(result) {
+      console.log('MRZ Data:', result.fields);
+      // Access parsed fields: firstName, lastName, documentNumber, etc.
+    }
+  }
+};
+</script>
+```
+
+**Note:** MRZ scanning requires license key configuration (see Configuration section).
+
+## Functional Demo App
+
 ScannerDemo Component
+
 The ScannerDemo component provides a complete example implementation showing:
 
 - Document type selection (MRZ vs Barcode)
@@ -145,7 +246,7 @@ The ScannerDemo component provides a complete example implementation showing:
 Key Features Demonstrated:
 
 - MRZ Scanning: Passport and ID document recognition with field validation
-- Barcode Scanning: QR codes, PDF417, and enhanced PDF417 for driver licenses
+- Barcode Scanning: QR codes, and PDF417 for driver licenses
 - Result Processing: Type-specific result handling and display
 - Camera Management: Start/stop controls with proper lifecycle management
 
@@ -166,25 +267,14 @@ Usage in Demo:
 </template>
 ```
 
-Installation
+## Development Setup
 
-```bash
-npm install @bedrock/vue-optical-scanner
-```
-
-Peer Dependencies
-
-```bash
-npm install vue@^3.4.21 @bedrock/quasar@^10.0.0 @bedrock/web-fontawesome@^2.0.0
-```
-
-Development Setup
-Prerequisites
+### Prerequisites
 
 - Node.js >= 20
 - npm or yarn
 
-Getting Started
+### Getting Started
 
 1. Clone and install dependencies:
 
@@ -214,3 +304,29 @@ npm run lint
 # Fix linting issues
 npm run lint:fix
 ```
+
+## Understanding Mode-Specific Props
+
+**Question:** Why doesn't `showQrBox` work for MRZ mode?
+
+**Answer:** Different scan types use different UI architectures:
+
+| Scan Type | UI Architecture | Props Available |
+|-----------|-----------------|-----------------|
+| `barcode` | Vue-controlled video + overlays | `showQrBox`, `torchOn` |
+| `mrz` | Dynamsoft native UI | None (Dynamsoft controls UI) |
+| `auto` | Vue-controlled video + overlays | `showQrBox`, `torchOn` |
+
+**Why the difference?**
+
+- **Barcode mode:** Uses standard browser camera APIs...
+- **MRZ mode:** Uses Dynamsoft's specialized document detection...
+- **Auto mode:** Attempts all formats using browser APIs...
+
+**Implementation Detail:** The component uses `effectiveShowQrBox` computed property...
+
+## Troubleshooting | FAQ
+
+### QR box doesn't show for MRZ scanning
+
+**Expected behavior:** MRZ mode uses Dynamsoft's native UI, so Vue overlays (including QR box) are automatically disabled. This is correct behavior.
