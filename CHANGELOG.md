@@ -1,5 +1,30 @@
 # bedrock-vue-optical-scanner ChangeLog
 
+## 1.2.0 - 2025-mm-dd
+
+### Changed
+
+- **NOTE**: License key configuration moved from component props to `@bedrock/web/config`
+  - Removed `licenseKey` prop from OpticalScanner component API
+  - License keys now configured once in bedrock config, automatically read by components
+  - Enables future removal of third-party dependencies without breaking changes
+- Updated props documentation to clarify mode-specific behavior
+  - `showQrBox` and `torchOn` props only apply to barcode/auto modes
+  - MRZ mode uses Dynamsoft native UI (Vue overlays automatically disabled)
+
+### Added
+
+- Configuration section in README explaining bedrock config setup for license keys
+- Troubleshooting section addressing common questions about mode-specific props
+- Architecture documentation explaining license key management design rationale
+
+### Improved
+
+- Implemented `effectiveShowQrBox` computed property for mode-aware UI rendering
+  - Automatically disables QR box overlay when MRZ mode is active
+  - Makes mode-specific behavior explicit in code rather than implicit
+- Enhanced PDF417 clarified as legacy feature accessible via `formats` prop override
+
 ## 1.1.0 - 2025-09-27
 
 ### Added
