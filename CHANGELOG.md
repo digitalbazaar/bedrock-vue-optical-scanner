@@ -1,114 +1,57 @@
-# bedrock-web-pouch-edv ChangeLog
+# bedrock-vue-optical-scanner ChangeLog
 
-## 8.2.0 - 2025-07-18
+## 1.2.0 - 2025-mm-dd
 
 ### Changed
-- Update dependencies:
-  - `@digitalbazaar/ecdsa-multikey@1.8`
-  - `pouchdb@9`
-  - `pouchdb-adapter-indexeddb@9`
-  - `pouchdb-find@9`
-  - dev deps and removal of `uuid`.
-- Note: While pouchdb* packages have been bumped by two major versions, no
-  significant breaking changes are expected. The changes included internal
-  ES5 => ES6+ API changes that were not relevant here and a new default
-  limit on `find()` queries of `25`, but every `find()` query is already
-  expected to have provided a default or a default is provided by this
-  library.
 
-## 8.1.0 - 2023-11-07
+- **NOTE**: License key configuration moved from component props to `@bedrock/web/config`
+  - Removed `licenseKey` prop from OpticalScanner component API
+  - License keys now configured once in bedrock config, automatically read by components
+  - Enables future removal of third-party dependencies without breaking changes
+- Updated props documentation to clarify mode-specific behavior
+  - `showQrBox` and `torchOn` props only apply to barcode/auto modes
+  - MRZ mode uses Dynamsoft native UI (Vue overlays automatically disabled)
 
 ### Added
-- Add new `cipherVersion` parameter to control whether the cipher version
-  is "recommended" or "fips". The default (and previous only option)
-  remains "recommended".
 
-## 8.0.0 - 2023-10-16
+- Configuration section in README explaining bedrock config setup for license keys
+- Troubleshooting section addressing common questions about mode-specific props
+- Architecture documentation explaining license key management design rationale
 
-### Changed
-- **BREAKING**: Drop support for Node.js < 18.
-- Use `@digitalbazaar/edv-client@16.0` that drops support for Node.js < 18 and
-  uses `@digitalbazaar/http-client@4` and `canonicalize@2`.
+### Improved
 
-## 7.0.0 - 2022-08-19
+- Implemented `effectiveShowQrBox` computed property for mode-aware UI rendering
+  - Automatically disables QR box overlay when MRZ mode is active
+  - Makes mode-specific behavior explicit in code rather than implicit
+- Enhanced PDF417 clarified as legacy feature accessible via `formats` prop override
 
-### Changed
-- **BREAKING**: Use `exports` instead of `module`.
-- Update dependencies.
-- Lint module.
-
-## 6.0.1 - 2022-05-30
-
-### Fixed
-- Add purge operation to clean up deleted docs to prevent premature storage
-  quota overflow.
-
-## 6.0.0 - 2022-05-30
-
-### Changed
-- **BREAKING**: Use `indexeddb` adapter instead of `idb` adapter. This version
-  will also impose a `br_edv_` (bedrock EDV) prefix on database names,
-  causing all new databases to be created, leaving old ones alone. There is
-  no migration code available to convert an old database to a new one in this
-  version.
-
-## 5.0.0 - 2022-05-05
-
-### Changed
-- **BREAKING**: Use `@digitalbazaar/edv-client@14` with new blind
-  attributes version.
-
-## 4.1.0 - 2022-05-03
-
-### Changed
-- Improve pouchdb index performance by marking deleted EDV doc
-  records with `_deleted` flag.
-
-## 4.0.0 - 2022-04-05
-
-### Changed
-- **BREAKING**: Rename package to `@bedrock/web-pouch-edv`.
-- **BREAKING**: Convert to module (ESM).
-- **BREAKING**: Remove default export.
-- **BREAKING**: Require node 14.x.
-
-## 3.0.0 - 2022-03-01
-
-### Changed
-- **BREAKING**: Use `@digitalbazaar/edv-client@13`.
-
-## 2.0.1 - 2022-02-24
-
-### Fixed
-- Provide alternative to `crypto.randomUUID` via `uuid` package.
-
-## 2.0.0 - 2022-02-23
-
-### Changed
-- **BREAKING**: Use `@digitalbazaar/edv-client@12`. This new version
-  produces encrypted indexes differently (more privacy preserving)
-  and is incompatible with the previous version.
-
-## 1.2.0 - 2022-02-05
+## 1.1.0 - 2025-09-27
 
 ### Added
-- Add support for `limit` in EDV queries.
 
-## 1.1.0 - 2022-02-03
-
-### Added
-- Automatically initialize databases when using
-  `PouchEdvClient` to generate a new EDV or load an one.
-
-### Fixed
-- Fix `db.type()` deprecation warnings.
-- Prevent double initialization of databases.
-
-## 1.0.1 - 2022-02-02
+- **BREAKING**: Refactored Vue components to use CameraScanner delegation pattern
+  - OpticalScanner.vue now uses CameraScanner from `bedrock-web-optical-scanner`
+  - Thin wrapper architecture enables easy duplication in other frameworks
 
 ### Changed
-- Update dependencies.
 
-## 1.0.0 - 2022-01-31
+- **NOTE**: Vue components are now thin wrappers focused purely on UI concerns
+- ScannerUI.vue streamlined for pure framework integration
+  - Clean separation between CameraScanner area and Vue overlay area
+  - Removed scanning business logic to achieve framework-agnostic design
+- Configuration simplified to scanType/scanMode props instead of complex plugin setup
 
-- See git history for changes.
+### Improved
+
+- All scanning complexity now delegated to `bedrock-web-optical-scanner` module
+- Vue components leverage framework-specific features (Quasar UI, reactivity) without scanning logic
+- Architecture enables rapid React/other framework development with minimal duplication
+- Better separation of concerns between presentation layer and scanning engine
+
+## 1.0.0 - 2025-09-14
+
+### Added
+
+- Vue.js components `OpticalScanner.vue` and `ScannerUI.vue` with reactive state management.
+- Scan type selection interface allowing users to choose between barcode/QR scanning and MRZ document scanning.
+- Timeout configuration system with format-specific timeouts (no timeout for MRZ camera mode, configurable timeouts for other formats).
